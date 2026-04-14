@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Weekly Activity Tracker 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f9f8f6; --surface: #ffffff; --border: #e4e2dc; --border-strong: #ccc9c0;
+  --text: #1a1a18; --text-muted: #7a7a72; --text-hint: #b0afa8;
+  --radius: 10px; --radius-lg: 14px; --slot-h: 32px; --time-w: 62px;
+  --blue: #378ADD; --green: #1D9E75; --orange: #BA7517; --pink: #D4537E; --purple: #7F77DD;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 1.25rem; }
+.app { display: flex; gap: 18px; max-width: 1060px; margin: 0 auto; align-items: flex-start; }
+.sidebar { width: 220px; flex-shrink: 0; position: sticky; top: 1.25rem; }
+.main { flex: 1; min-width: 0; }
+.page-header { max-width: 1060px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.page-header h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.3px; }
+.page-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.status-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.status-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; }
+.status-pill.show { opacity: 1; }
+.status-pill.saving { background: #FFF8E6; color: #BA7517; border: 1px solid #FAC775; }
+.status-pill.saved { background: #E1F5EE; color: #0F6E56; border: 1px solid #9FE1CB; }
+.status-pill.error { background: #FCEBEB; color: #A32D2D; border: 1px solid #F09595; }
+.status-pill.offline { background: #F1EFE8; color: #5F5E5A; border: 1px solid #B4B2A9; }
+
+/* setup banner */
+.setup-banner { max-width: 1060px; margin: 0 auto 14px; background: #FFF8E6; border: 1px solid #FAC775; border-radius: var(--radius-lg); padding: 14px 18px; }
+.setup-banner h3 { font-size: 14px; font-weight: 500; color: #633806; margin-bottom: 6px; }
+.setup-banner p { font-size: 13px; color: #854F0B; line-height: 1.6; }
+.setup-banner code { background: #FAEEDA; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+.setup-banner a { color: var(--blue); }
+
+/* calendar */
+.cal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 14px; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-nav button { font-family: 'DM Sans', sans-serif; font-size: 13px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px 6px; border-radius: 6px; }
+.cal-nav button:hover { background: var(--bg); color: var(--text); }
+.cal-nav span { font-size: 13px; font-weight: 500; color: var(--text); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-dow { font-size: 10px; color: var(--text-hint); text-align: center; padding: 2px 0 4px; font-weight: 500; }
+.cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-muted); border-radius: 6px; cursor: default; position: relative; }
+.cal-day.weekday { cursor: pointer; color: var(--text); }
+.cal-day.weekday:hover { background: #EBF4FC; color: var(--blue); }
+.cal-day.has-data::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--blue); }
+.cal-day.active { background: var(--text) !important; color: #fff !important; }
+.cal-day.active::after { background: #fff; }
+.cal-day.is-today { font-weight: 500; color: var(--green); }
+.cal-day.is-today:not(.active) { background: #E1F5EE; }
+.cal-day.faded { opacity: 0.3; }
+
+.legend-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; }
+.legend-card h3 { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.leg-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.leg-item:last-child { margin-bottom: 0; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.leg-mins { font-weight: 500; color: var(--text); margin-left: auto; font-size: 11px; }
+
+/* week nav */
+.week-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.nav-btn { font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.nav-btn:hover { background: var(--bg); color: var(--text); border-color: var(--text); }
+.nav-btn.today-btn { border-color: var(--blue); color: var(--blue); }
+.nav-btn.today-btn:hover { background: #EBF4FC; }
+.week-label { font-size: 13px; font-weight: 500; color: var(--text); }
+.week-select { font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 5px 8px; border-radius: 20px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); cursor: pointer; outline: none; max-width: 160px; }
+
+/* card */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+.day-tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+.day-tab { font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.day-tab:hover { border-color: var(--border-strong); color: var(--text); }
+.day-tab.active { background: var(--text); color: #fff; border-color: var(--text); font-weight: 500; }
+.day-tab.has-data { border-color: var(--blue); color: var(--blue); }
+.day-tab.has-data.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.day-tab.is-today { border-color: var(--green); color: var(--green); }
+.day-tab.is-today.active { background: var(--green); color: #fff; border-color: var(--green); }
+.day-tab.is-today.has-data.active { background: var(--green); color: #fff; }
+
+.action-row { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.action-btn { font-family: 'DM Sans', sans-serif; font-size: 11px; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.action-btn:hover { background: var(--bg); color: var(--text); }
+.action-btn.primary { border-color: var(--blue); color: var(--blue); }
+.action-btn.primary:hover { background: #EBF4FC; }
+.action-btn.success { border-color: var(--green); color: var(--green); }
+.action-btn.success:hover { background: #E1F5EE; }
+.action-btn.warn { border-color: #E24B4A; color: #E24B4A; }
+.action-btn.warn:hover { background: #FCEBEB; }
+.toast { display: none; font-size: 11px; padding: 3px 10px; border-radius: 20px; background: #E1F5EE; color: #0F6E56; border: 1px solid #9FE1CB; }
+.toast.show { display: inline-block; }
+
+.grid-wrap { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.time-col { width: var(--time-w); flex-shrink: 0; background: var(--bg); border-right: 1px solid var(--border); }
+.time-label { height: var(--slot-h); display: flex; align-items: center; justify-content: flex-end; padding-right: 9px; font-size: 10px; color: var(--text-hint); border-bottom: 1px solid var(--border); }
+.time-label.hour { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.time-label:last-child { border-bottom: none; }
+.slots-col { flex: 1; min-width: 0; }
+.slot { height: var(--slot-h); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 10px 0 8px; gap: 9px; transition: background 0.1s; }
+.slot:last-child { border-bottom: none; }
+.slot.hour-start { border-top: 1px solid var(--border-strong); }
+.slot:hover { background: #faf9f7; }
+.slot.has-entry { background: #EBF4FC; }
+.slot.has-entry:hover { background: #dbedf9; }
+.slot-dot { width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0; cursor: pointer; border: 1.5px solid var(--border-strong); background: var(--surface); transition: transform 0.12s; }
+.slot-dot:hover { transform: scale(1.3); }
+.slot input { border: none; background: transparent; font-size: 13px; color: var(--text); width: 100%; outline: none; font-family: 'DM Sans', sans-serif; min-width: 0; }
+.slot input::placeholder { color: var(--text-hint); }
+.summary-bar { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.summary-chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+.reset-week-btn { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text-hint); background: none; border: none; cursor: pointer; margin-left: auto; text-decoration: underline; }
+.reset-week-btn:hover { color: #E24B4A; }
+@media (max-width: 680px) { .app { flex-direction: column; } .sidebar { width: 100%; position: static; } }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>Weekly Activity Tracker 2026</h1>
+    <p>7:30 am – 5:00 pm &nbsp;·&nbsp; 15-min blocks &nbsp;·&nbsp; Syncs to Google Sheets</p>
+  </div>
+  <div class="status-bar">
+    <span class="status-pill offline show" id="statusOffline">● Local only</span>
+    <span class="status-pill saving" id="statusSaving">Saving…</span>
+    <span class="status-pill saved" id="statusSaved">✓ Synced to Sheets</span>
+    <span class="status-pill error" id="statusError">⚠ Sync failed — saved locally</span>
+  </div>
+</div>
+
+<div class="setup-banner" id="setupBanner">
+  <h3>One-time setup required to enable Google Sheets sync</h3>
+  <p>
+    To sync across devices, you need a free Google Apps Script web app as a bridge between this tracker and your Sheet.<br><br>
+    <strong>Steps (takes ~3 minutes):</strong><br>
+    1. Open your <a href="https://docs.google.com/spreadsheets/d/1txXB0KCvmNCVCOz4wt07NZ2K-qiO7iM5sGJtwCfOlEs/edit" target="_blank">Activity Tracker 2026 Google Sheet</a><br>
+    2. Click <strong>Extensions → Apps Script</strong><br>
+    3. Delete any existing code and paste the script below<br>
+    4. Click <strong>Deploy → New deployment → Web app</strong><br>
+    5. Set <em>Execute as</em>: <strong>Me</strong> &nbsp;|&nbsp; <em>Who has access</em>: <strong>Anyone</strong><br>
+    6. Click Deploy, copy the web app URL, paste it in the box below and click Save<br><br>
+    <strong>Apps Script code to paste:</strong><br>
+    <code id="appsScriptCode">Loading...</code>
+  </p>
+  <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input type="text" id="scriptUrlInput" placeholder="Paste your Apps Script web app URL here…"
+      style="font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 12px;border-radius:20px;border:1px solid var(--border-strong);outline:none;width:380px;max-width:100%;" />
+    <button onclick="saveScriptUrl()"
+      style="font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 16px;border-radius:20px;border:1px solid var(--green);background:transparent;color:var(--green);cursor:pointer;">
+      Save &amp; Connect
+    </button>
+    <button onclick="document.getElementById('setupBanner').style.display='none'"
+      style="font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 16px;border-radius:20px;border:1px solid var(--border-strong);background:transparent;color:var(--text-muted);cursor:pointer;">
+      Use local only
+    </button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="cal-card">
+      <div class="cal-nav">
+        <button id="calPrev">‹</button>
+        <span id="calTitle"></span>
+        <button id="calNext">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <div class="legend-card">
+      <h3>Categories</h3>
+      <div id="legendList"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="week-nav">
+      <button class="nav-btn" id="prevWeek">← Prev</button>
+      <span class="week-label" id="weekLabel"></span>
+      <button class="nav-btn" id="nextWeek">Next →</button>
+      <button class="nav-btn today-btn" id="goToday">Today</button>
+      <select class="week-select" id="weekSelect"></select>
+    </div>
+    <div class="card">
+      <div class="day-tabs" id="dayTabs"></div>
+      <div class="action-row">
+        <button class="action-btn primary" id="carryBtn">Copy to remaining days →</button>
+        <button class="action-btn success" id="csvBtn">Download CSV</button>
+        <button class="action-btn warn" id="clearBtn">Clear this day</button>
+        <span class="toast" id="toast"></span>
+      </div>
+      <div class="grid-wrap">
+        <div class="time-col" id="timeCol"></div>
+        <div class="slots-col" id="slotsCol"></div>
+      </div>
+      <div class="summary-bar" id="summaryBar">
+        <button class="reset-week-btn" id="resetWeek">Reset this week</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const SHEET_ID = '1txXB0KCvmNCVCOz4wt07NZ2K-qiO7iM5sGJtwCfOlEs';
+const LOCAL_KEY = 'tracker_2026_v2';
+const SCRIPT_URL_KEY = 'tracker_script_url';
+
+const APPS_SCRIPT = `function doGet(e) {
+  return handleRequest(e);
+}
+function doPost(e) {
+  return handleRequest(e);
+}
+function handleRequest(e) {
+  var ss = SpreadsheetApp.openById('${SHEET_ID}');
+  var sheet = ss.getSheetByName('TrackerData') || ss.insertSheet('TrackerData');
+  var action = (e.parameter && e.parameter.action) || (e.postData ? JSON.parse(e.postData.contents).action : '');
+  var output;
+  if (action === 'read') {
+    var data = sheet.getDataRange().getValues();
+    var result = {};
+    for (var i = 1; i < data.length; i++) {
+      var dk = data[i][0], idx = data[i][1], text = data[i][2], cat = data[i][3];
+      if (!result[dk]) result[dk] = [];
+      result[dk][idx] = { text: text, cat: cat || null };
+    }
+    output = ContentService.createTextOutput(JSON.stringify({ ok: true, data: result }));
+  } else if (action === 'write') {
+    var payload = JSON.parse(e.postData.contents);
+    var dk2 = payload.dateKey, idx2 = payload.slotIdx, text2 = payload.text, cat2 = payload.cat || '';
+    var rows = sheet.getDataRange().getValues();
+    var found = false;
+    for (var r = 1; r < rows.length; r++) {
+      if (rows[r][0] === dk2 && rows[r][1] === idx2) {
+        sheet.getRange(r+1, 3, 1, 2).setValues([[text2, cat2]]);
+        found = true; break;
+      }
+    }
+    if (!found) { sheet.appendRow([dk2, idx2, text2, cat2]); }
+    output = ContentService.createTextOutput(JSON.stringify({ ok: true }));
+  } else if (action === 'deleteDay') {
+    var payload2 = JSON.parse(e.postData.contents);
+    var dk3 = payload2.dateKey;
+    var rows2 = sheet.getDataRange().getValues();
+    for (var r2 = rows2.length; r2 >= 2; r2--) {
+      if (rows2[r2-1][0] === dk3) sheet.deleteRow(r2);
+    }
+    output = ContentService.createTextOutput(JSON.stringify({ ok: true }));
+  } else {
+    output = ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Unknown action' }));
+  }
+  output.setMimeType(ContentService.MimeType.JSON);
+  return output;
+}`;
+
+document.getElementById('appsScriptCode').textContent = APPS_SCRIPT;
+
+// ── Script URL ──
+let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || '';
+if (SCRIPT_URL) {
+  document.getElementById('setupBanner').style.display = 'none';
+  document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+  setStatus('saved');
+} else {
+  setStatus('offline');
+}
+
+function saveScriptUrl() {
+  const val = document.getElementById('scriptUrlInput').value.trim();
+  if (!val || !val.startsWith('https://')) { alert('Please enter a valid https:// URL'); return; }
+  SCRIPT_URL = val;
+  localStorage.setItem(SCRIPT_URL_KEY, SCRIPT_URL);
+  document.getElementById('setupBanner').style.display = 'none';
+  loadFromSheets();
+}
+
+// ── Status ──
+function setStatus(s) {
+  ['offline','saving','saved','error'].forEach(k => {
+    const el = document.getElementById('status'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el) el.classList.remove('show');
+  });
+  const map = { offline:'statusOffline', saving:'statusSaving', saved:'statusSaved', error:'statusError' };
+  const el = document.getElementById(map[s]);
+  if(el) el.classList.add('show');
+}
+
+// ── Slots ──
+function genSlots() {
+  const s=[]; let h=7,m=30;
+  while(!(h===17&&m===0)){s.push({h,m});m+=15;if(m>=60){m=0;h++;}}
+  return s;
+}
+const SLOTS = genSlots();
+function fmt(h,m){const suf=h>=12?'pm':'am',hh=h>12?h-12:h;return `${hh}:${m===0?'00':m} ${suf}`;}
+function isHourStart(i){return SLOTS[i].m===0||(SLOTS[i].h===7&&SLOTS[i].m===30);}
+function showLabel(i){const{h,m}=SLOTS[i];return(m===0||m===30)?fmt(h,m):'';}
+
+const CATS=[
+  {label:'Admin',color:'#378ADD'},{label:'Client',color:'#1D9E75'},
+  {label:'Meetings',color:'#BA7517'},{label:'Personal',color:'#D4537E'},{label:'Deep work',color:'#7F77DD'}
+];
+const NO_COLOR='#d4d2cc';
+function catColor(cat){if(!cat)return NO_COLOR;return CATS.find(c=>c.label===cat)?.color||NO_COLOR;}
+
+// ── Date helpers ──
+function getMonday(d){const date=new Date(d),day=date.getDay();date.setDate(date.getDate()+(day===0?-6:1-day));date.setHours(0,0,0,0);return date;}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function dateKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function fmtDate(d){return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'});}
+function fmtDayLabel(d){return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]+' '+fmtDate(d);}
+function fmtWeekLabel(mon){const fri=addDays(mon,4),o={month:'short',day:'numeric'};return mon.toLocaleDateString('en-US',o)+' – '+fri.toLocaleDateString('en-US',o);}
+function isWeekday(d){const dy=d.getDay();return dy>=1&&dy<=5;}
+
+const today=new Date();today.setHours(0,0,0,0);
+const endDate=new Date(2026,11,31);
+const allWeeks=[];
+let wCur=getMonday(today);wCur.setDate(wCur.getDate()-28);
+while(wCur<=endDate){allWeeks.push(new Date(wCur));wCur.setDate(wCur.getDate()+7);}
+
+// ── Local storage ──
+let storedData={};
+try{const r=localStorage.getItem(LOCAL_KEY);if(r)storedData=JSON.parse(r);}catch(e){}
+
+function saveLocal(){try{localStorage.setItem(LOCAL_KEY,JSON.stringify(storedData));}catch(e){}}
+
+function getEntry(dk,i){
+  if(!storedData[dk])storedData[dk]=SLOTS.map(()=>({text:'',cat:null}));
+  if(!storedData[dk][i])storedData[dk][i]={text:'',cat:null};
+  return storedData[dk][i];
+}
+function dayHasData(dk){const d=storedData[dk];return d&&d.some(s=>s.text||s.cat);}
+
+// ── Sheets sync ──
+let syncQueue=[];
+let syncTimer=null;
+
+function queueSync(dk,slotIdx,text,cat){
+  saveLocal();
+  if(!SCRIPT_URL){setStatus('offline');return;}
+  syncQueue.push({dk,slotIdx,text,cat});
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(flushQueue,800);
+  setStatus('saving');
+}
+
+async function flushQueue(){
+  if(!syncQueue.length||!SCRIPT_URL)return;
+  const batch=[...syncQueue]; syncQueue=[];
+  try{
+    for(const item of batch){
+      await fetch(SCRIPT_URL,{
+        method:'POST',
+        body:JSON.stringify({action:'write',dateKey:item.dk,slotIdx:item.slotIdx,text:item.text,cat:item.cat||''}),
+      });
+    }
+    setStatus('saved');
+  }catch(e){
+    setStatus('error');
+    syncQueue=[...batch,...syncQueue];
+  }
+}
+
+async function loadFromSheets(){
+  if(!SCRIPT_URL)return;
+  setStatus('saving');
+  try{
+    const res=await fetch(SCRIPT_URL+'?action=read');
+    const json=await res.json();
+    if(json.ok&&json.data){
+      Object.keys(json.data).forEach(dk=>{
+        storedData[dk]=json.data[dk];
+      });
+      saveLocal();
+      setStatus('saved');
+      renderAll();
+    }
+  }catch(e){
+    setStatus('error');
+  }
+}
+
+async function deleteDayFromSheets(dk){
+  if(!SCRIPT_URL)return;
+  try{
+    await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteDay',dateKey:dk})});
+  }catch(e){}
+}
+
+// ── State ──
+let currentWeekIdx=allWeeks.findIndex(w=>{const fri=addDays(w,4);return w<=today&&today<=fri;});
+if(currentWeekIdx<0)currentWeekIdx=Math.max(0,allWeeks.findIndex(w=>w>=getMonday(today)));
+let activeDayKey=dateKey(isWeekday(today)?today:allWeeks[currentWeekIdx]);
+let calViewYear=today.getFullYear(), calViewMonth=today.getMonth();
+
+// ── Calendar ──
+function renderCalendar(){
+  document.getElementById('calTitle').textContent=new Date(calViewYear,calViewMonth,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d=>{const el=document.createElement('div');el.className='cal-dow';el.textContent=d;grid.appendChild(el);});
+  const first=new Date(calViewYear,calViewMonth,1),startOff=first.getDay(),dim=new Date(calViewYear,calViewMonth+1,0).getDate();
+  for(let i=0;i<startOff;i++){const el=document.createElement('div');el.className='cal-day faded';grid.appendChild(el);}
+  for(let d=1;d<=dim;d++){
+    const date=new Date(calViewYear,calViewMonth,d),dk=dateKey(date);
+    const el=document.createElement('div');
+    let cls='cal-day';
+    if(isWeekday(date))cls+=' weekday';
+    if(dayHasData(dk))cls+=' has-data';
+    if(dk===activeDayKey)cls+=' active';
+    if(dk===dateKey(today))cls+=' is-today';
+    el.className=cls;el.textContent=d;
+    if(isWeekday(date)){el.onclick=()=>{activeDayKey=dk;const mon=getMonday(date);const idx=allWeeks.findIndex(w=>dateKey(w)===dateKey(mon));if(idx>=0)currentWeekIdx=idx;renderAll();};}
+    grid.appendChild(el);
+  }
+}
+document.getElementById('calPrev').onclick=()=>{calViewMonth--;if(calViewMonth<0){calViewMonth=11;calViewYear--;}renderCalendar();};
+document.getElementById('calNext').onclick=()=>{calViewMonth++;if(calViewMonth>11){calViewMonth=0;calViewYear++;}renderCalendar();};
+
+// ── Legend ──
+function renderLegend(){
+  const el=document.getElementById('legendList');el.innerHTML='';
+  const de=storedData[activeDayKey]||[];
+  CATS.forEach(c=>{
+    const cnt=de.filter(s=>s&&s.cat===c.label).length;
+    const li=document.createElement('div');li.className='leg-item';
+    li.innerHTML=`<div class="leg-dot" style="background:${c.color}"></div><span>${c.label}</span>${cnt>0?`<span class="leg-mins">${cnt*15}m</span>`:''}`;
+    el.appendChild(li);
+  });
+}
+
+// ── Week nav ──
+function populateSelect(){
+  const sel=document.getElementById('weekSelect');sel.innerHTML='';
+  allWeeks.forEach((w,i)=>{const opt=document.createElement('option');opt.value=i;opt.textContent=fmtWeekLabel(w);if(i===currentWeekIdx)opt.selected=true;sel.appendChild(opt);});
+}
+function renderWeekNav(){
+  document.getElementById('weekLabel').textContent=fmtWeekLabel(allWeeks[currentWeekIdx]);
+  document.getElementById('prevWeek').disabled=currentWeekIdx<=0;
+  document.getElementById('nextWeek').disabled=currentWeekIdx>=allWeeks.length-1;
+}
+
+// ── Tabs ──
+function renderTabs(){
+  const el=document.getElementById('dayTabs');el.innerHTML='';
+  [0,1,2,3,4].map(i=>addDays(allWeeks[currentWeekIdx],i)).forEach(d=>{
+    const dk=dateKey(d),isT=dk===dateKey(today),hD=dayHasData(dk),isA=dk===activeDayKey;
+    const b=document.createElement('button');
+    let cls='day-tab';if(isT)cls+=' is-today';if(hD)cls+=' has-data';if(isA)cls+=' active';
+    b.className=cls;b.textContent=fmtDayLabel(d);
+    b.onclick=()=>{activeDayKey=dk;renderTabs();renderGrid();renderLegend();renderCalendar();renderSummary();};
+    el.appendChild(b);
+  });
+}
+
+// ── Grid ──
+function renderGrid(){
+  const tc=document.getElementById('timeCol'),sc=document.getElementById('slotsCol');
+  tc.innerHTML='';sc.innerHTML='';
+  SLOTS.forEach((s,i)=>{
+    const tl=document.createElement('div');
+    tl.className='time-label'+((s.m===0||(s.h===7&&s.m===30))?' hour':'');
+    tl.textContent=showLabel(i);tc.appendChild(tl);
+    const entry=getEntry(activeDayKey,i);
+    const slot=document.createElement('div');
+    slot.className='slot'+(isHourStart(i)?' hour-start':'')+(entry.text?' has-entry':'');
+    const dot=document.createElement('div');dot.className='slot-dot';
+    const col=catColor(entry.cat);dot.style.background=col;dot.style.borderColor=entry.cat?col:NO_COLOR;
+    dot.title=entry.cat?`${entry.cat} — click to change`:'Click to assign category';
+    dot.onclick=()=>{
+      const idx=entry.cat?CATS.findIndex(c=>c.label===entry.cat):-1;
+      entry.cat=idx>=CATS.length-1?null:CATS[idx+1].label;
+      const nc=catColor(entry.cat);dot.style.background=nc;dot.style.borderColor=entry.cat?nc:NO_COLOR;
+      dot.title=entry.cat?`${entry.cat} — click to change`:'Click to assign category';
+      renderLegend();renderSummary();renderTabs();renderCalendar();
+      queueSync(activeDayKey,i,entry.text,entry.cat);
+    };
+    const inp=document.createElement('input');inp.type='text';inp.placeholder='—';inp.value=entry.text;
+    inp.oninput=e=>{
+      entry.text=e.target.value;
+      slot.classList.toggle('has-entry',!!e.target.value);
+      renderSummary();renderTabs();renderCalendar();
+      queueSync(activeDayKey,i,entry.text,entry.cat);
+    };
+    slot.appendChild(dot);slot.appendChild(inp);sc.appendChild(slot);
+  });
+}
+
+// ── Summary ──
+function renderSummary(){
+  const bar=document.getElementById('summaryBar'),rb=document.getElementById('resetWeek');
+  const de=storedData[activeDayKey]||[];
+  const filled=de.filter(s=>s&&s.text).length,pct=Math.round(filled/SLOTS.length*100);
+  bar.innerHTML='';
+  [`${filled} of ${SLOTS.length} blocks filled`,`${pct}% of day planned`].forEach(t=>{
+    const c=document.createElement('div');c.className='summary-chip';c.textContent=t;bar.appendChild(c);
+  });
+  bar.appendChild(rb);
+}
+
+function renderAll(){populateSelect();renderWeekNav();renderTabs();renderGrid();renderLegend();renderCalendar();renderSummary();}
+
+// ── Nav events ──
+document.getElementById('prevWeek').onclick=()=>{if(currentWeekIdx>0){currentWeekIdx--;activeDayKey=dateKey(allWeeks[currentWeekIdx]);renderAll();}};
+document.getElementById('nextWeek').onclick=()=>{if(currentWeekIdx<allWeeks.length-1){currentWeekIdx++;activeDayKey=dateKey(allWeeks[currentWeekIdx]);renderAll();}};
+document.getElementById('goToday').onclick=()=>{
+  currentWeekIdx=allWeeks.findIndex(w=>{const fri=addDays(w,4);return w<=today&&today<=fri;});
+  if(currentWeekIdx<0)currentWeekIdx=0;
+  activeDayKey=dateKey(today);calViewYear=today.getFullYear();calViewMonth=today.getMonth();renderAll();
+};
+document.getElementById('weekSelect').onchange=e=>{currentWeekIdx=parseInt(e.target.value);activeDayKey=dateKey(allWeeks[currentWeekIdx]);renderAll();};
+
+// ── Action events ──
+document.getElementById('carryBtn').onclick=()=>{
+  const days=[0,1,2,3,4].map(i=>addDays(allWeeks[currentWeekIdx],i));
+  const fromIdx=days.findIndex(d=>dateKey(d)===activeDayKey);
+  const snap=(storedData[activeDayKey]||SLOTS.map(()=>({text:'',cat:null}))).map(s=>({text:s.text,cat:s.cat}));
+  for(let i=fromIdx+1;i<days.length;i++){
+    const dk=dateKey(days[i]);
+    storedData[dk]=snap.map(s=>({text:s.text,cat:s.cat}));
+    snap.forEach((entry,si)=>{ if(entry.text||entry.cat) queueSync(dk,si,entry.text,entry.cat); });
+  }
+  renderTabs();renderCalendar();
+  const t=document.getElementById('toast');
+  const rem=days.slice(fromIdx+1).map(d=>fmtDayLabel(d)).join(', ');
+  t.textContent=rem?`Copied to ${rem}`:'No remaining days';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);
+};
+
+document.getElementById('clearBtn').onclick=()=>{
+  if(!confirm('Clear all entries for this day?'))return;
+  storedData[activeDayKey]=SLOTS.map(()=>({text:'',cat:null}));
+  saveLocal();deleteDayFromSheets(activeDayKey);renderAll();
+};
+
+document.getElementById('resetWeek').onclick=()=>{
+  if(!confirm('Reset the entire current week? This cannot be undone.'))return;
+  [0,1,2,3,4].map(i=>addDays(allWeeks[currentWeekIdx],i)).forEach(d=>{
+    const dk=dateKey(d);storedData[dk]=SLOTS.map(()=>({text:'',cat:null}));
+    deleteDayFromSheets(dk);
+  });
+  saveLocal();renderAll();
+};
+
+document.getElementById('csvBtn').onclick=()=>{
+  const rows=[['Date','Day','Time','Activity','Category']];
+  Object.keys(storedData).sort().forEach(key=>{
+    const entries=storedData[key];if(!entries)return;
+    const d=new Date(key+'T12:00:00'),dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    entries.forEach((entry,i)=>{if(entry&&(entry.text||entry.cat))rows.push([key,dn,fmt(SLOTS[i].h,SLOTS[i].m),entry.text||'',entry.cat||'']);});
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='activity_tracker_2026.csv';a.click();URL.revokeObjectURL(url);
+};
+
+// ── Init ──
+renderAll();
+if(SCRIPT_URL) loadFromSheets();
+</script>
+</body>
+</html>
