@@ -259,7 +259,7 @@ function handleRequest(e) {
 document.getElementById('appsScriptCode').textContent = APPS_SCRIPT;
 
 // ── Script URL ──
-let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || '';
+let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || 'https://script.google.com/macros/s/AKfycbx16cF3vujxTOeiye21PlVwiZGD_XIhpod9lsJdo7qWFJJ7SHTDFMum7MsLzPHMKpWMiw/exec';
 if (SCRIPT_URL) {
   document.getElementById('setupBanner').style.display = 'none';
   document.getElementById('scriptUrlInput').value = SCRIPT_URL;
